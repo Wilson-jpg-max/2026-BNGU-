@@ -1,0 +1,28 @@
+
+import cv2
+img=cv2.imread("picture.PNG")
+gray=cv2.imread("picture.PNG",0)#第二个参数0表示以灰度图读取
+gray = cv2.GaussianBlur(gray, (5, 5), 0)#滤波，削弱噪声
+
+# 二值化处理
+# 参数说明：gray为输入灰度图，127为阈值，255为最大值，THRESH_BINARY为二值化类型
+ret,binary_img = cv2.threshold(gray, 127,255, cv2.THRESH_BINARY)
+
+contours, _ = cv2.findContours(binary_img, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)# 根据二值化图像框选图像轮廓
+
+
+for contour in contours:
+    # 计算每个封闭的contour的周长，乘0.02赋值给epsilon作为拟合的精度参数
+    epsilon = (0.02* cv2.arcLength(contour, True))
+    # 对contour做多边形逼近，epsilon定义了原始轮廓和逼近多边形之间的最大距离，
+    # epsilon越小逼近的多边形就越接近原始的轮廓
+    approx = cv2.approxPolyDP(contour, epsilon, True)
+    if len(approx) == 6 and cv2.contourArea(contour) > 100:
+            # 计算一个简单的边界框
+            x, y, w, h = cv2.boundingRect(approx)
+            # 画出边界框
+            cv2.rectangle(img, (x, y), (x + w, y + h), (0, 0, 255), 1)
+            ###也可选择使用cv2.drawContours(img, [approx], -1, (0, 255, 0), 2)只生成轮廓     # 绘制轮廓：参数分别为原始图像、轮廓列表、轮廓索引（-1表示绘制所有轮廓）、颜色、线宽
+
+cv2.imshow("Contours image", img)
+cv2.waitKey(0)
