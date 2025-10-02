@@ -1,0 +1,16 @@
+import cv2 # 导入OpenCV库
+img = cv2.imread('Bed.jpg')
+cv2.imshow('test', img)
+img_hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)  #颜色空间转换函数
+img_h, img_s, img_v = cv2.split(img_hsv)   #分离三通道 色调，饱和度，明度
+mask_h = cv2.inRange(img_h, 140, 180)
+mask_s = cv2.inRange(img_s, 0, 255)
+mask_v = cv2.inRange(img_v, 0, 255)
+
+mask_h_and_s = cv2.bitwise_and(mask_h, mask_s)
+mask = cv2.bitwise_and(mask_h_and_s, mask_v)
+
+img_out = cv2.bitwise_and(img, img, mask = mask)
+cv2.imshow("img", img_out)
+cv2.imwrite("img_out.png", img_out)
+cv2.waitKey(0)
