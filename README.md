@@ -8,8 +8,6 @@
 
   演示视频：https://www.bilibili.com/video/BV1XQxCzoEie/?vd_source=ab0c93c04b6bd232acd3e4d7c2de5ef3
 
-  ![2026-BNGU-]（https://github.com/Wilson-jpg-max/2026-BNGU-/blob/main/Task3/Task3.png）
-
 ##
 2.建立好个人仓库，写完整了readme说明并开源
 ##
