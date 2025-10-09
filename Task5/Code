@@ -1,0 +1,105 @@
+import cv2
+import numpy as np
+
+#相机参数
+cameraMatrix = np.array([[800, 0, 320], [0, 800, 240], [0, 0, 1]], dtype=np.float32)
+distCoeffs = np.zeros((5, 1), dtype=np.float32)
+
+#3D点（世界坐标系）
+a = 0.024
+objectPoints = np.array([
+    [0, 0, 0],    # 3D原点（P0）
+    [a, 0, 0],    # X轴方向（P1）
+    [a, a, 0],    # X+Y方向（P2）
+    [0, a, 0]     # Y轴方向（P3）
+], dtype=np.float32)
+
+#3D坐标轴定义
+axis_points = np.array([
+    [0, 0, 0],    # 原点
+    [a, 0, 0],    # X轴端点
+    [0, a, 0],    # Y轴端点
+    [0, 0, -a]    # Z轴端点
+], dtype=np.float32)
+
+#打开视频流
+cap = cv2.VideoCapture("video4.mp4")
+
+#灰色区域HSV阈值
+lower_gray = np.array([0, 0, 0])
+upper_gray = np.array([180, 255, 120])
+
+while cap.isOpened():
+    ret, frame = cap.read()
+    if not ret:
+        break
+
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    gray_mask = cv2.inRange(hsv, lower_gray, upper_gray)
+
+    #形态学优化
+    kernel = np.ones((7, 7), np.uint8)
+    gray_mask = cv2.morphologyEx(gray_mask, cv2.MORPH_CLOSE, kernel)
+    gray_mask = cv2.morphologyEx(gray_mask, cv2.MORPH_OPEN, kernel)
+
+    #检测灰色面轮廓并提取四个角点
+    contours, _ = cv2.findContours(gray_mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    left_up_pos = None   # 左上角P0
+    right_up_pos = None  # 右上角P1
+    right_down_pos = None# 右下角P2
+    left_down_pos = None # 左下角P3
+
+    for cnt in contours:
+        area = cv2.contourArea(cnt)
+        if 5000 < area:
+            perimeter = cv2.arcLength(cnt, True)
+            approx = cv2.approxPolyDP(cnt, 0.01 * perimeter, True)
+            if len(approx) == 4:
+                approx = approx.reshape(4, 2).astype(np.float32)
+                center = np.mean(approx, axis=0)
+                angles = np.arctan2(approx[:, 1] - center[1], approx[:, 0] - center[0])
+                sorted_corners = approx[np.argsort(angles)]  # 顺时针排序
+
+                #显式赋值四个角点变量
+                left_up_pos = sorted_corners[0]
+                right_up_pos = sorted_corners[1]
+                right_down_pos = sorted_corners[2]
+                left_down_pos = sorted_corners[3]
+                break
+
+    #构造imagePoints并解算位姿
+    imagePoints = None
+    if left_up_pos is not None and right_up_pos is not None and right_down_pos is not None and left_down_pos is not None:
+        imagePoints = np.array([
+            [left_up_pos[0], left_up_pos[1]],
+            [right_up_pos[0], right_up_pos[1]],
+            [right_down_pos[0], right_down_pos[1]],
+            [left_down_pos[0], left_down_pos[1]]
+        ], dtype=np.float32)
+
+        #位姿解算
+        ret, rvec, tvec = cv2.solvePnP(objectPoints, imagePoints, cameraMatrix, distCoeffs)
+        if ret:
+            #投影3D坐标轴到2D图像
+            projected_axis_points, _ = cv2.projectPoints(axis_points, rvec, tvec, cameraMatrix, distCoeffs)
+            projected_axis_points = np.int32(projected_axis_points).reshape(-1, 2)
+
+            #绘制坐标轴
+            cv2.line(frame, tuple(projected_axis_points[0]), tuple(projected_axis_points[1]), (255, 0, 0), 3)   # X轴（红）
+            cv2.line(frame, tuple(projected_axis_points[0]), tuple(projected_axis_points[2]), (0, 255, 0), 3)   # Y轴（绿）
+            cv2.line(frame, tuple(projected_axis_points[0]), tuple(projected_axis_points[3]), (0, 0, 255), 3)   # Z轴（蓝）
+
+            #绘制角点
+            cv2.circle(frame, tuple(projected_axis_points[0]), 10, (255, 255, 0), -1)  # 原点（黄）
+            cv2.circle(frame, tuple(projected_axis_points[1]), 10, (255, 0, 0), -1)    # X轴端点（红）
+            cv2.circle(frame, tuple(projected_axis_points[2]), 10, (0, 255, 0), -1)    # Y轴端点（绿）
+            cv2.circle(frame, tuple(projected_axis_points[3]), 10, (0, 0, 255), -1)    # Z轴端点（蓝）
+
+    #显示结果
+    cv2.imshow("frame", frame)
+    cv2.imshow("Gray Mask", gray_mask)
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+
+cap.release()
+cv2.destroyAllWindows()
