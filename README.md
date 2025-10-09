@@ -7,7 +7,7 @@
 1.电脑代码运行环境配置，能够正常开启虚拟机Ubuntu系统，能够使用IDE运行视觉程序
 ##
 2.建立好个人仓库，写完整了readme说明并开源
-演示视频：<iframe src="https://www.bilibili.com/video/BV1XQxCzoEie/?vd_source=ab0c93c04b6bd232acd3e4d7c2de5ef3" scrolling="no" border="0" frameborder="no" allowfullscreen="true"></iframe>
+演示视频：https://www.bilibili.com/video/BV1XQxCzoEie/?vd_source=ab0c93c04b6bd232acd3e4d7c2de5ef3
 ##
 3.按照颜色分割一文正确完成最终任务，并在仓库中带有在自己电脑上运行时候的截图/视频
 ##
